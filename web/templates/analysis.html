@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Historical Reporting</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app shell">
+      <header class="hero compact">
+        <div>
+          <p class="eyebrow">Reporting</p>
+          <h1>Historical Traffic Report</h1>
+          <p class="hero-copy">
+            Trend view for alerts, traffic, host activity, and management-ready summary.
+          </p>
+        </div>
+        <div class="toolbar-group">
+          <a class="btn" href="/">Dashboard</a>
+          <button class="btn primary" id="loadReportBtn">Refresh Report</button>
+          <button class="btn" id="copyReportBtn">Copy Summary</button>
+        </div>
+      </header>
+
+      <section class="filters">
+        <label>
+          <span>Report Range</span>
+          <select id="reportRange">
+            <option value="3600">1 hour</option>
+            <option value="21600">6 hours</option>
+            <option value="86400" selected>24 hours</option>
+            <option value="604800">7 days</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="kpi-grid four">
+        <article class="kpi-card accent">
+          <div class="kpi-label">Alerts In Report</div>
+          <div class="kpi-value" id="reportAlerts">0</div>
+          <div class="kpi-note" id="reportGenerated">Generated now</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-label">Packets</div>
+          <div class="kpi-value" id="reportPackets">0</div>
+          <div class="kpi-note" id="reportBytes">0 bytes</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-label">Hosts Observed</div>
+          <div class="kpi-value" id="reportHosts">0</div>
+          <div class="kpi-note" id="reportDomains">0 domains</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-label">Workflow</div>
+          <div class="kpi-value" id="reportWorkflow">0</div>
+          <div class="kpi-note" id="reportWorkflowBreakdown">New 0 | Resolved 0</div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Executive Summary</h2>
+            <p>Plain-language narrative generated from the reporting dataset</p>
+          </div>
+        </div>
+        <div class="narrative" id="reportNarrative"></div>
+      </section>
+
+      <section class="panel-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Traffic Timeline</h2>
+              <p>Traffic volume across the report window</p>
+            </div>
+          </div>
+          <div class="chart" id="reportTrafficChart"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Protocol Mix</h2>
+              <p>Protocol concentration in the report period</p>
+            </div>
+          </div>
+          <div class="mini-list" id="reportProtocolMix"></div>
+        </article>
+      </section>
+
+      <section class="panel-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Top Alerts</h2>
+              <p>Most important grouped incidents in the selected period</p>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Severity</th>
+                  <th>Events</th>
+                  <th>Owner</th>
+                  <th>Last Seen</th>
+                </tr>
+              </thead>
+              <tbody id="reportAlertRows"></tbody>
+            </table>
+          </div>
+        </article>
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Top Hosts</h2>
+              <p>Hosts with the most packet and alert activity</p>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Host</th>
+                  <th>Role</th>
+                  <th>Packets</th>
+                  <th>Alerts</th>
+                  <th>Top Domain</th>
+                </tr>
+              </thead>
+              <tbody id="reportHostRows"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </div>
+
+    <script src="/static/analysis.js"></script>
+  </body>
+</html>
