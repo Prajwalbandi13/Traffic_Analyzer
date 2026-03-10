@@ -8,7 +8,6 @@ const els = {
   restartBtn: document.getElementById("restartBtn"),
   clearBtn: document.getElementById("clearBtn"),
   analyzeBtn: document.getElementById("analyzeBtn"),
-  trainBtn: document.getElementById("trainBtn"),
   refreshBtn: document.getElementById("refreshBtn"),
   rangeSelect: document.getElementById("rangeSelect"),
   queryInput: document.getElementById("queryInput"),
@@ -32,6 +31,8 @@ const els = {
   hostRows: document.getElementById("hostRows"),
   hostDetail: document.getElementById("hostDetail"),
   packetRows: document.getElementById("packetRows"),
+  tabButtons: Array.from(document.querySelectorAll("[data-tab]")),
+  tabPanels: Array.from(document.querySelectorAll("[data-tab-panel]")),
 };
 
 const state = {
@@ -39,7 +40,18 @@ const state = {
   selectedHostIp: null,
   dashboard: null,
   refreshTimer: null,
+  activeTab: "overview",
 };
+
+function setActiveTab(tabName) {
+  state.activeTab = tabName;
+  els.tabButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.tab === tabName);
+  });
+  els.tabPanels.forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.tabPanel === tabName);
+  });
+}
 
 function formatNumber(value) {
   return new Intl.NumberFormat().format(value || 0);
@@ -458,11 +470,13 @@ els.clearBtn.addEventListener("click", async () => {
 });
 
 els.analyzeBtn.addEventListener("click", runLiveAnalysis);
-els.trainBtn.addEventListener("click", async () => {
-  await fetchJson("/api/ml/train", { method: "POST" });
-  await refreshDashboard();
-});
 els.refreshBtn.addEventListener("click", refreshDashboard);
+
+els.tabButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setActiveTab(button.dataset.tab);
+  });
+});
 
 [els.rangeSelect, els.protocolFilter, els.severityFilter, els.alertStatusFilter].forEach((el) => {
   el.addEventListener("change", refreshDashboard);
@@ -477,4 +491,5 @@ els.queryInput.addEventListener("input", () => {
 refreshDashboard().catch(() => {
   els.statusText.textContent = "Disconnected";
 });
+setActiveTab(state.activeTab);
 scheduleRefresh();

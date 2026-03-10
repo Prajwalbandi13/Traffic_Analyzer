@@ -6,7 +6,7 @@ from flask import Flask, jsonify, render_template, request
 
 from analysis.engine import analyze_current_flows
 from capture.controller import get_status, restart_capture, start_capture, stop_capture
-from detection.ml_based import MIN_TRAIN_SAMPLES, model_exists, train_isolation_forest
+from detection.ml_based import MIN_TRAIN_SAMPLES
 from preprocessing.feature_extractor import FEATURE_WINDOW
 from preprocessing.flow_builder import TIME_WINDOW
 from storage.database import (
@@ -122,13 +122,6 @@ def api_analyze():
     return jsonify(result)
 
 
-@app.route("/api/ml/train", methods=["POST"])
-def api_ml_train():
-    result = train_isolation_forest(min_samples=MIN_TRAIN_SAMPLES)
-    result["model_trained"] = model_exists()
-    return jsonify(result)
-
-
 @app.route("/api/dashboard")
 def api_dashboard():
     range_seconds = _range_seconds()
@@ -137,7 +130,11 @@ def api_dashboard():
     severity = request.args.get("severity")
     alert_status = request.args.get("alert_status")
 
-    live_analysis = analyze_current_flows(store_alerts=False, persist_features_for_ml=False)
+    live_analysis = analyze_current_flows(
+        store_alerts=False,
+        persist_features_for_ml=False,
+        auto_train_ml=False,
+    )
     return jsonify(
         {
             "status": get_status(),

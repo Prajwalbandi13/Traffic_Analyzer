@@ -38,7 +38,6 @@
         </div>
         <div class="toolbar-group">
           <button class="btn" id="analyzeBtn">Run Live Analysis</button>
-          <button class="btn" id="trainBtn">Train ML</button>
           <a class="btn" href="/analysis">Reporting</a>
         </div>
       </section>
@@ -112,144 +111,159 @@
         </article>
       </section>
 
-      <section class="panel-grid">
-        <article class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Traffic Trend</h2>
-              <p>Packets and bytes over the selected range</p>
+      <nav class="tab-bar" aria-label="Dashboard sections">
+        <button class="tab-btn active" data-tab="overview">Overview</button>
+        <button class="tab-btn" data-tab="incidents">Incidents</button>
+        <button class="tab-btn" data-tab="hosts">Hosts</button>
+        <button class="tab-btn" data-tab="packets">Packets</button>
+      </nav>
+
+      <section class="tab-panel active" data-tab-panel="overview">
+        <section class="panel-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Traffic Trend</h2>
+                <p>Packets and bytes over the selected range</p>
+              </div>
             </div>
-          </div>
-          <div class="chart" id="trafficChart"></div>
-        </article>
-        <article class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Alert Trend</h2>
-              <p>Grouped incidents by time bucket</p>
+            <div class="chart" id="trafficChart"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Alert Trend</h2>
+                <p>Grouped incidents by time bucket</p>
+              </div>
             </div>
-          </div>
-          <div class="chart" id="alertChart"></div>
-        </article>
+            <div class="chart" id="alertChart"></div>
+          </article>
+        </section>
+
+        <section class="panel-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Protocol Mix</h2>
+                <p>Recent protocol distribution</p>
+              </div>
+            </div>
+            <div class="mini-list" id="protocolMix"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Top Domains</h2>
+                <p>Most active destinations in the current range</p>
+              </div>
+            </div>
+            <div class="mini-list" id="topDomains"></div>
+          </article>
+        </section>
       </section>
 
-      <section class="panel-grid">
-        <article class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Protocol Mix</h2>
-              <p>Recent protocol distribution</p>
+      <section class="tab-panel" data-tab-panel="incidents">
+        <section class="main-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Incident Queue</h2>
+                <p>Grouped alerts with triage status and ownership</p>
+              </div>
             </div>
-          </div>
-          <div class="mini-list" id="protocolMix"></div>
-        </article>
-        <article class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Top Domains</h2>
-              <p>Most active destinations in the current range</p>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Pair</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th>Owner</th>
+                    <th>Events</th>
+                    <th>Last Seen</th>
+                  </tr>
+                </thead>
+                <tbody id="alertRows"></tbody>
+              </table>
             </div>
-          </div>
-          <div class="mini-list" id="topDomains"></div>
-        </article>
+          </article>
+          <aside class="panel detail-panel">
+            <div class="panel-head">
+              <div>
+                <h2>Alert Detail</h2>
+                <p>Workflow state, notes, and recommended context</p>
+              </div>
+            </div>
+            <div id="alertDetail" class="detail-empty">Select an alert to triage it.</div>
+          </aside>
+        </section>
       </section>
 
-      <section class="main-grid">
-        <article class="panel">
+      <section class="tab-panel" data-tab-panel="hosts">
+        <section class="main-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Host Inventory</h2>
+                <p>Active hosts, ownership, roles, and peer context</p>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Host</th>
+                    <th>Role</th>
+                    <th>Packets</th>
+                    <th>Peers</th>
+                    <th>Top Protocol</th>
+                    <th>Alerts</th>
+                    <th>Last Seen</th>
+                  </tr>
+                </thead>
+                <tbody id="hostRows"></tbody>
+              </table>
+            </div>
+          </article>
+          <aside class="panel detail-panel">
+            <div class="panel-head">
+              <div>
+                <h2>Host Detail</h2>
+                <p>Metadata, behavior summary, and recent packets</p>
+              </div>
+            </div>
+            <div id="hostDetail" class="detail-empty">Select a host to inspect and tag it.</div>
+          </aside>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="packets">
+        <section class="panel">
           <div class="panel-head">
             <div>
-              <h2>Incident Queue</h2>
-              <p>Grouped alerts with triage status and ownership</p>
+              <h2>Live Packet Feed</h2>
+              <p>Filtered packet stream for quick drill-down</p>
             </div>
           </div>
           <div class="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th>Type</th>
-                  <th>Pair</th>
-                  <th>Severity</th>
-                  <th>Status</th>
-                  <th>Owner</th>
-                  <th>Events</th>
-                  <th>Last Seen</th>
+                  <th>Time</th>
+                  <th>Domain</th>
+                  <th>Source</th>
+                  <th>Destination</th>
+                  <th>Protocol</th>
+                  <th>Src Port</th>
+                  <th>Dst Port</th>
+                  <th>Size</th>
                 </tr>
               </thead>
-              <tbody id="alertRows"></tbody>
+              <tbody id="packetRows"></tbody>
             </table>
           </div>
-        </article>
-        <aside class="panel detail-panel">
-          <div class="panel-head">
-            <div>
-              <h2>Alert Detail</h2>
-              <p>Workflow state, notes, and recommended context</p>
-            </div>
-          </div>
-          <div id="alertDetail" class="detail-empty">Select an alert to triage it.</div>
-        </aside>
-      </section>
-
-      <section class="main-grid">
-        <article class="panel">
-          <div class="panel-head">
-            <div>
-              <h2>Host Inventory</h2>
-              <p>Active hosts, ownership, roles, and peer context</p>
-            </div>
-          </div>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Host</th>
-                  <th>Role</th>
-                  <th>Packets</th>
-                  <th>Peers</th>
-                  <th>Top Protocol</th>
-                  <th>Alerts</th>
-                  <th>Last Seen</th>
-                </tr>
-              </thead>
-              <tbody id="hostRows"></tbody>
-            </table>
-          </div>
-        </article>
-        <aside class="panel detail-panel">
-          <div class="panel-head">
-            <div>
-              <h2>Host Detail</h2>
-              <p>Metadata, behavior summary, and recent packets</p>
-            </div>
-          </div>
-          <div id="hostDetail" class="detail-empty">Select a host to inspect and tag it.</div>
-        </aside>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>Live Packet Feed</h2>
-            <p>Filtered packet stream for quick drill-down</p>
-          </div>
-        </div>
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Domain</th>
-                <th>Source</th>
-                <th>Destination</th>
-                <th>Protocol</th>
-                <th>Src Port</th>
-                <th>Dst Port</th>
-                <th>Size</th>
-              </tr>
-            </thead>
-            <tbody id="packetRows"></tbody>
-          </table>
-        </div>
+        </section>
       </section>
     </div>
 

@@ -214,7 +214,7 @@ def _build_threat_insights(alerts):
     return insights
 
 
-def analyze_current_flows(store_alerts=True, persist_features_for_ml=True):
+def analyze_current_flows(store_alerts=True, persist_features_for_ml=True, auto_train_ml=True):
     """
     Runs rule-based + statistical analysis on current flows
     and returns alerts + a risk score.
@@ -240,10 +240,13 @@ def analyze_current_flows(store_alerts=True, persist_features_for_ml=True):
         "model_metadata": model_metadata,
     }
 
-    # Lightweight auto-train once enough historical windows exist.
-    if ml_status["supported"] and not ml_status["model_trained"] and len(dataset_rows) >= MIN_TRAIN_SAMPLES:
+    # Keep ML training backend-driven so the UI does not expose model management.
+    if ml_status["supported"] and auto_train_ml and len(dataset_rows) >= MIN_TRAIN_SAMPLES:
         ml_status["training"] = train_isolation_forest(min_samples=MIN_TRAIN_SAMPLES)
         ml_status["model_trained"] = load_model() is not None
+        dataset_rows = fetch_feature_dataset()
+        model_metadata = get_model_metadata() if model_exists() else None
+        ml_status["model_metadata"] = model_metadata
 
     ml_rows = dataset_rows[-ML_RECENT_WINDOWS:] if dataset_rows else []
     ml_alerts = detect_anomalies_for_rows(ml_rows) if ml_status["model_trained"] else []
