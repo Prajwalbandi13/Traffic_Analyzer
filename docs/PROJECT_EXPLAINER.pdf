@@ -1,0 +1,1814 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R 28 0 R 30 0 R 32 0 R 34 0 R 36 0 R] /Count 17 >>
+endobj
+3 0 obj
+<< /Length 2699 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+(TRAFFIC ANALYZER PROJECT EXPLAINER) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(1. What this product is) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This project is an intelligent network traffic monitoring and analysis system. It captures) Tj
+0 -14 Td
+(live packets from the machine or network interface, stores normalized traffic records in) Tj
+0 -14 Td
+(SQLite, analyzes the captured data with multiple detection layers, groups suspicious) Tj
+0 -14 Td
+(findings into manageable incidents, and exposes the results through a Flask dashboard and) Tj
+0 -14 Td
+(reporting UI.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(At a practical level, it is a network detection and investigation tool.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(It helps answer questions like:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- What traffic is happening right now?) Tj
+0 -14 Td
+(- Which hosts are most active?) Tj
+0 -14 Td
+(- Which domains are being contacted?) Tj
+0 -14 Td
+(- Is any host scanning ports?) Tj
+0 -14 Td
+(- Is there burst traffic that looks like denial-of-service behavior?) Tj
+0 -14 Td
+(- Are there repeated failed connections that suggest brute force or blocked access attempts?) Tj
+0 -14 Td
+(- Is the current traffic pattern unusual compared to previously observed windows?) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The codebase does not currently implement automatic traffic blocking, host quarantine, or) Tj
+0 -14 Td
+(firewall enforcement. So this is primarily a detect, explain, triage, and report product) Tj
+0 -14 Td
+(rather than a prevention product.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(2. Why we need this product) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Modern networks produce too much traffic for a human to inspect manually. Looking at raw) Tj
+0 -14 Td
+(packets one by one is slow, noisy, and hard to scale. This product helps by turning raw) Tj
+0 -14 Td
+(traffic into operationally useful views.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(It is needed for several reasons:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- To provide visibility into real network activity.) Tj
+0 -14 Td
+(- To detect suspicious patterns early.) Tj
+0 -14 Td
+(- To give security or operations teams a usable incident queue instead of raw packet spam.) Tj
+0 -14 Td
+(- To preserve historical data so investigations are not lost on refresh.) Tj
+0 -14 Td
+(- To create summaries and reports for operations, handoffs, and review.) Tj
+0 -14 Td
+(- To surface unknown or unusual behavior through anomaly detection even when no simple) Tj
+0 -14 Td
+(  signature exists.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(In short, the product reduces blind spots and turns network telemetry into actionable) Tj
+0 -14 Td
+(investigation data.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(3. End-to-end architecture and flow) Tj
+ET
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 3 0 R >>
+endobj
+5 0 obj
+<< /Length 2194 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The complete flow is:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(1. Live capture starts.) Tj
+0 -14 Td
+(2. Packets are captured using Scapy.) Tj
+0 -14 Td
+(3. Each packet is normalized into structured fields.) Tj
+0 -14 Td
+(4. Best-effort domain enrichment is attempted.) Tj
+0 -14 Td
+(5. The packet record is stored in SQLite.) Tj
+0 -14 Td
+(6. Packets are grouped into short-lived flows.) Tj
+0 -14 Td
+(7. Feature windows are built for machine learning.) Tj
+0 -14 Td
+(8. Rule-based, statistical, and ML detectors run.) Tj
+0 -14 Td
+(9. Detections are enriched with human-readable explanations.) Tj
+0 -14 Td
+(10. Alerts are deduplicated and grouped into incidents.) Tj
+0 -14 Td
+(11. A risk score is calculated.) Tj
+0 -14 Td
+(12. The Flask API sends the data to the dashboard and reporting pages.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4. Detailed module flow) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4.1 Capture lifecycle) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The live capture controller manages when sniffing starts and stops.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- `capture/controller.py`) Tj
+0 -14 Td
+(  - starts `AsyncSniffer`) Tj
+0 -14 Td
+(  - stops it safely) Tj
+0 -14 Td
+(  - reports running state and packet count) Tj
+0 -14 Td
+(  - triggers automatic ML training when capture stops) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(When capture starts, Scapy runs in the background and forwards each observed packet to) Tj
+0 -14 Td
+(`process_packet\(\)`.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4.2 Packet normalization) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Raw packets are handled in `capture/live_capture.py`.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This module:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- ignores non-IP packets) Tj
+0 -14 Td
+(- extracts source and destination IPs) Tj
+0 -14 Td
+(- extracts protocol, source port, destination port, size, and TCP flags) Tj
+0 -14 Td
+(- tries to enrich traffic with domain names) Tj
+0 -14 Td
+(- stores the structured packet record in SQLite) Tj
+0 -14 Td
+(- periodically triggers detection) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4.3 Domain enrichment and protocol-aware parsing) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The system tries to make network records more human-readable by attaching domain names to) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 2083 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+(traffic.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(It uses several methods:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- DNS response parsing) Tj
+0 -14 Td
+(  - maps returned IP addresses back to domain names) Tj
+0 -14 Td
+(- TLS SNI extraction) Tj
+0 -14 Td
+(  - reads the Server Name Indication from a TLS ClientHello) Tj
+0 -14 Td
+(- HTTP Host parsing) Tj
+0 -14 Td
+(  - reads the `Host` header for plaintext HTTP traffic) Tj
+0 -14 Td
+(- QUIC/TLS heuristics) Tj
+0 -14 Td
+(  - attempts to infer hostnames from QUIC handshake data) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This is useful because investigators often think in terms of domains rather than raw IPs.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Important limitation:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- This is best-effort enrichment, not guaranteed attribution.) Tj
+0 -14 Td
+(- Encrypted payload content is not decrypted.) Tj
+0 -14 Td
+(- Some traffic will remain IP-only.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4.4 Storage layer) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(All persistent data lives in `storage/network_traffic.db`.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The main tables are:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- `packets`) Tj
+0 -14 Td
+(  - normalized packet records) Tj
+0 -14 Td
+(- `alerts`) Tj
+0 -14 Td
+(  - grouped incidents and analyst workflow fields) Tj
+0 -14 Td
+(- `traffic_features`) Tj
+0 -14 Td
+(  - numerical per-window features for ML) Tj
+0 -14 Td
+(- `host_profiles`) Tj
+0 -14 Td
+(  - analyst-maintained metadata such as display name, role, owner, notes, and allowlist) Tj
+0 -14 Td
+(status) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This design is useful because the UI is history-driven rather than purely in-memory.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(That means:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- page refresh does not lose context) Tj
+0 -14 Td
+(- reports can be built from stored history) Tj
+0 -14 Td
+(- host metadata survives packet clearing) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4.5 Flow building) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The project does not run detection directly on individual packets. Instead, it first groups) Tj
+0 -14 Td
+(traffic into short windows in `preprocessing/flow_builder.py`.) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 1666 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+() Tj
+0 -14 Td
+(Current flow design:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- packets are bucketed into 5-second windows) Tj
+0 -14 Td
+(- a flow key is `\(src_ip, dst_ip, window_start\)`) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Each flow tracks:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- packet count) Tj
+0 -14 Td
+(- unique destination ports) Tj
+0 -14 Td
+(- SYN count) Tj
+0 -14 Td
+(- ACK count) Tj
+0 -14 Td
+(- RST count) Tj
+0 -14 Td
+(- start and end time) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This gives detectors a summarized view of behavior rather than isolated packet events.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(4.6 Feature extraction for ML) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(In `preprocessing/feature_extractor.py`, packets are also grouped into 10-second windows to) Tj
+0 -14 Td
+(create machine learning features.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Each feature window includes:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- packet count) Tj
+0 -14 Td
+(- packet rate) Tj
+0 -14 Td
+(- byte rate) Tj
+0 -14 Td
+(- average packet size) Tj
+0 -14 Td
+(- max packet size) Tj
+0 -14 Td
+(- packet size variance) Tj
+0 -14 Td
+(- unique source IPs) Tj
+0 -14 Td
+(- unique destination IPs) Tj
+0 -14 Td
+(- unique destination ports) Tj
+0 -14 Td
+(- TCP count) Tj
+0 -14 Td
+(- UDP count) Tj
+0 -14 Td
+(- ICMP count) Tj
+0 -14 Td
+(- TCP ratio) Tj
+0 -14 Td
+(- UDP ratio) Tj
+0 -14 Td
+(- ICMP ratio) Tj
+0 -14 Td
+(- SYN count) Tj
+0 -14 Td
+(- ACK count) Tj
+0 -14 Td
+(- FIN count) Tj
+0 -14 Td
+(- RST count) Tj
+0 -14 Td
+(- average inter-arrival time) Tj
+0 -14 Td
+(- inter-arrival variance) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(These are stored in `traffic_features` and later used for model training and anomaly) Tj
+0 -14 Td
+(scoring.) Tj
+0 -14 Td
+() Tj
+ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 1857 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+(4.7 Detection engine) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(`analysis/engine.py` coordinates the entire analysis layer.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(It performs four important jobs:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- runs detectors) Tj
+0 -14 Td
+(- enriches alerts with human-readable explanations) Tj
+0 -14 Td
+(- deduplicates alerts) Tj
+0 -14 Td
+(- calculates a risk score and threat insights) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(It also controls ML orchestration such as auto-training and anomaly evaluation.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5. What threats the system identifies) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The project is currently built to identify these categories:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5.1 Port scanning) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Rule: if a source contacts many different destination ports in the same short window, the) Tj
+0 -14 Td
+(system raises `Possible Port Scan`.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Current threshold:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- 10 or more unique destination ports in a 5-second flow window) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Why it matters:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- reconnaissance is often the first step before exploitation) Tj
+0 -14 Td
+(- attackers scan to discover exposed services) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5.2 DoS burst behavior) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Rule: if a flow sees a very large number of packets in a short time, the system raises) Tj
+0 -14 Td
+(`Possible DoS Burst`.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Current threshold:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- 400 or more packets in a 5-second flow window) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Why it matters:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- can indicate flooding) Tj
+0 -14 Td
+(- can degrade availability) Tj
+0 -14 Td
+(- can also reveal retry storms or malfunctioning systems) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5.3 Repeated failed connections) Tj
+0 -14 Td
+() Tj
+ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 11 0 R >>
+endobj
+13 0 obj
+<< /Length 2077 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+(Rule: if many SYN packets appear without ACKs, or there are many RST packets, the system) Tj
+0 -14 Td
+(raises `Repeated Failed Connections`.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Current thresholds:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- 30 or more SYN packets with no ACK in a 5-second window) Tj
+0 -14 Td
+(- 20 or more RST packets in a 5-second window) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Why it matters:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- may indicate brute-force behavior) Tj
+0 -14 Td
+(- may indicate blocked or unreachable services) Tj
+0 -14 Td
+(- may reveal firewall rejection or unstable systems) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5.4 Traffic spikes) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Statistical detector logic:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- requires at least 5 flows to establish a baseline) Tj
+0 -14 Td
+(- computes average packet count across current flows) Tj
+0 -14 Td
+(- flags flows that are both:) Tj
+0 -14 Td
+(  - at least 60 packets) Tj
+0 -14 Td
+(  - more than 3 times the flow average) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Why it matters:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- catches abnormal volume shifts not captured by simple rules) Tj
+0 -14 Td
+(- helps surface suspicious bursts, transfers, or abnormal surges) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5.5 ML anomalies) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The ML detector flags behavior windows that differ from the learned normal pattern.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Why it matters:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- not all suspicious activity matches a simple threshold) Tj
+0 -14 Td
+(- some threats look like combinations of subtle feature shifts) Tj
+0 -14 Td
+(- anomaly detection can surface rare patterns even without explicit signatures) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(6. What threats are being nullified versus only identified) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This is an important distinction.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(What the current product does well:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- identifies suspicious traffic behavior) Tj
+0 -14 Td
+(- groups repeated detections into incidents) Tj
+0 -14 Td
+(- supports investigation with context) Tj
+ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 13 0 R >>
+endobj
+15 0 obj
+<< /Length 1775 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+(- preserves history) Tj
+0 -14 Td
+(- helps prioritize with risk scoring) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(What it does not currently do:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- automatically block malicious traffic) Tj
+0 -14 Td
+(- modify firewall rules) Tj
+0 -14 Td
+(- isolate hosts) Tj
+0 -14 Td
+(- terminate sockets) Tj
+0 -14 Td
+(- revoke access) Tj
+0 -14 Td
+(- suppress allowlisted hosts at detector level) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(So the threats are mostly being:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- identified) Tj
+0 -14 Td
+(- surfaced) Tj
+0 -14 Td
+(- explained) Tj
+0 -14 Td
+(- tracked) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(They are not automatically nullified by the current code.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(If the product were extended later, it could integrate with:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- firewalls) Tj
+0 -14 Td
+(- IDS/IPS tools) Tj
+0 -14 Td
+(- SIEM platforms) Tj
+0 -14 Td
+(- SOAR playbooks) Tj
+0 -14 Td
+(- ticketing systems) Tj
+0 -14 Td
+(- notification systems like Slack or email) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(But those integrations are not implemented in the current repository.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7. Integrations in the current code) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(There are two kinds of integrations in this project: runtime integrations and architectural) Tj
+0 -14 Td
+(integrations.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.1 Runtime integrations already present) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- Scapy) Tj
+0 -14 Td
+(  - used for live packet capture) Tj
+0 -14 Td
+(  - core integration for packet collection) Tj
+0 -14 Td
+(- Flask) Tj
+0 -14 Td
+(  - used to expose web pages and JSON APIs) Tj
+0 -14 Td
+(- SQLite) Tj
+0 -14 Td
+(  - persistent local datastore) Tj
+0 -14 Td
+(- scikit-learn) Tj
+0 -14 Td
+(  - used for the Isolation Forest ML model) Tj
+ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 15 0 R >>
+endobj
+17 0 obj
+<< /Length 2259 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+() Tj
+0 -14 Td
+(7.2 Architectural integrations across modules) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The modules are internally integrated in a clear pipeline:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- capture layer integrates with analysis by calling the detection cycle) Tj
+0 -14 Td
+(- preprocessing integrates with detection by creating flows and feature windows) Tj
+0 -14 Td
+(- storage integrates with all layers by persisting packets, features, alerts, and profiles) Tj
+0 -14 Td
+(- web API integrates with analysis and storage to expose the dashboard and reporting pages) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7.3 Missing external integrations) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Currently absent:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- no authentication provider integration) Tj
+0 -14 Td
+(- no SIEM export) Tj
+0 -14 Td
+(- no email or Slack alerting) Tj
+0 -14 Td
+(- no webhook pipeline) Tj
+0 -14 Td
+(- no firewall or NAC integration) Tj
+0 -14 Td
+(- no cloud logging integration) Tj
+0 -14 Td
+(- no packet broker integration) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(There is an `alerting/alerts.py` file, but it is not active in the current flow.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(8. Machine learning in detail) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(8.1 Why there is an ML layer at all) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Rule-based logic is great when we already know what suspicious behavior looks like. But real) Tj
+0 -14 Td
+(network behavior is messy. Some harmful or abnormal activity may not look like a simple) Tj
+0 -14 Td
+(threshold breach.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Examples:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- unusual combinations of protocols) Tj
+0 -14 Td
+(- odd packet-size patterns) Tj
+0 -14 Td
+(- strange timing behavior) Tj
+0 -14 Td
+(- unexpected host diversity in a short window) Tj
+0 -14 Td
+(- bursts that are not quite large enough to trip a hard-coded rule) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The ML layer exists to complement rules and statistics, not replace them.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(That design choice is visible in the risk logic:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- rule-based alerts have highest weight) Tj
+0 -14 Td
+(- statistical alerts have meaningful but lower influence) Tj
+0 -14 Td
+(- ML alerts are treated as supportive evidence unless corroborated) Tj
+0 -14 Td
+() Tj
+ET
+endstream
+endobj
+18 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 17 0 R >>
+endobj
+19 0 obj
+<< /Length 2318 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+(This is a healthy design because anomaly detectors can produce false positives if used) Tj
+0 -14 Td
+(alone.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(8.2 Why Isolation Forest was chosen) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The model in use is `IsolationForest`.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This choice makes sense for the current project because:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- the dataset is unsupervised) Tj
+0 -14 Td
+(  - there is no strong labeled dataset of normal vs attack traffic in the repo) Tj
+0 -14 Td
+(- anomaly detection fits the goal better than classification) Tj
+0 -14 Td
+(  - we want to learn normal behavior and spot outliers) Tj
+0 -14 Td
+(- it works reasonably well on tabular numerical features) Tj
+0 -14 Td
+(- it is easy to train locally) Tj
+0 -14 Td
+(- it is available in scikit-learn) Tj
+0 -14 Td
+(- it does not require deep learning infrastructure) Tj
+0 -14 Td
+(- it can perform well on small-to-medium datasets) Tj
+0 -14 Td
+(- it is simple to persist as a pickle and reload in the Flask app) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Why not a supervised classifier?) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- there is no ground-truth labeled training dataset in the project) Tj
+0 -14 Td
+(- supervised models would need labeled attack classes) Tj
+0 -14 Td
+(- maintaining those labels would add significant data engineering overhead) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Why not deep learning?) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- too heavy for this project stage) Tj
+0 -14 Td
+(- harder to explain) Tj
+0 -14 Td
+(- more training complexity) Tj
+0 -14 Td
+(- unnecessary for the current feature scale) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(So Isolation Forest is a practical, lightweight, unsupervised anomaly detector for this) Tj
+0 -14 Td
+(architecture.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(8.3 How Isolation Forest works conceptually) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Isolation Forest works by randomly partitioning feature space. Anomalies are easier to) Tj
+0 -14 Td
+(isolate than normal points because they are rarer and more different, so they tend to end up) Tj
+0 -14 Td
+(separated with fewer splits.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(That means:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- normal windows tend to blend into the larger population) Tj
+0 -14 Td
+(- abnormal windows get isolated quickly) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The model returns:) Tj
+0 -14 Td
+() Tj
+ET
+endstream
+endobj
+20 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 19 0 R >>
+endobj
+21 0 obj
+<< /Length 1922 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+(- a prediction) Tj
+0 -14 Td
+(  - `-1` means anomaly) Tj
+0 -14 Td
+(  - `1` means normal) Tj
+0 -14 Td
+(- an anomaly score) Tj
+0 -14 Td
+(  - lower values are more suspicious) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(8.4 What data the ML model trains on) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The model is trained on rows from the `traffic_features` table.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Each row represents a 10-second traffic window summarized into numerical features.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(So the model does not see raw packets directly.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(It sees structured statistics such as:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- volume) Tj
+0 -14 Td
+(- rates) Tj
+0 -14 Td
+(- protocol mix) Tj
+0 -14 Td
+(- TCP flag patterns) Tj
+0 -14 Td
+(- port diversity) Tj
+0 -14 Td
+(- host diversity) Tj
+0 -14 Td
+(- timing irregularity) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This is the correct pattern for classical tabular ML on network telemetry.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(8.5 Exactly how training happens) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Training logic lives in `detection/ml_based.py`.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The training process is:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(1. Fetch feature rows from SQLite.) Tj
+0 -14 Td
+(2. Check whether scikit-learn is installed.) Tj
+0 -14 Td
+(3. Check whether there are enough training samples.) Tj
+0 -14 Td
+(4. Convert feature rows into a numerical matrix.) Tj
+0 -14 Td
+(5. Create an Isolation Forest model.) Tj
+0 -14 Td
+(6. Fit the model on all available feature rows.) Tj
+0 -14 Td
+(7. Compute weak-label evaluation metrics if possible.) Tj
+0 -14 Td
+(8. Save the model and metadata as a pickle file.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Current training settings:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- minimum samples: 30) Tj
+0 -14 Td
+(- estimator count: 120 trees) Tj
+0 -14 Td
+(- contamination: 0.1) Tj
+0 -14 Td
+(- random state: 42) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(These settings come directly from the code.) Tj
+ET
+endstream
+endobj
+22 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 21 0 R >>
+endobj
+23 0 obj
+<< /Length 2023 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+() Tj
+0 -14 Td
+(Interpretation:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- `MIN_TRAIN_SAMPLES = 30`) Tj
+0 -14 Td
+(  - the model will not train unless at least 30 feature windows exist) Tj
+0 -14 Td
+(- `n_estimators = 120`) Tj
+0 -14 Td
+(  - the forest uses 120 trees) Tj
+0 -14 Td
+(- `contamination = 0.1`) Tj
+0 -14 Td
+(  - the model assumes roughly 10 percent of samples may be anomalous) Tj
+0 -14 Td
+(- `random_state = 42`) Tj
+0 -14 Td
+(  - training is reproducible) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(8.6 When training happens) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Training is backend-driven and mostly automatic.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(It can happen in two ways:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(1. During an explicit analysis run) Tj
+0 -14 Td
+(   - `analyze_current_flows\(store_alerts=True\)` can persist features and auto-train if) Tj
+0 -14 Td
+(enough samples exist) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(2. When live capture stops) Tj
+0 -14 Td
+(   - `stop_capture\(\)` triggers `auto_train_ml_with_terminal_report\(\)`) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This means the user does not manually operate a train button in the current UI.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(8.7 How inference happens) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(After training:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- the model is loaded from `detection/models/isolation_forest.pkl`) Tj
+0 -14 Td
+(- recent feature rows are selected) Tj
+0 -14 Td
+(- the most recent 12 windows are evaluated) Tj
+0 -14 Td
+(- anomalous rows become `ML Anomaly \(Isolation Forest\)` alerts) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Each ML alert currently contains:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- type) Tj
+0 -14 Td
+(- severity) Tj
+0 -14 Td
+(- reason with anomaly score) Tj
+0 -14 Td
+(- time window) Tj
+0 -14 Td
+(- top abnormal features) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(One limitation:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- ML alerts do not currently map back to a specific `src_ip` and `dst_ip`) Tj
+0 -14 Td
+(- they use `N/A` for those fields because the model runs on time-window aggregates, not) Tj
+0 -14 Td
+(  per-flow identity) Tj
+ET
+endstream
+endobj
+24 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 23 0 R >>
+endobj
+25 0 obj
+<< /Length 1784 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+() Tj
+0 -14 Td
+(8.8 How the system explains ML alerts) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The code computes the top abnormal features by z-score comparison against the evaluated) Tj
+0 -14 Td
+(rows.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This gives human-readable clues such as:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- packet count was unusually high) Tj
+0 -14 Td
+(- unique destination ports were unusually high) Tj
+0 -14 Td
+(- byte rate or inter-arrival behavior was unusual) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This makes the model more explainable than a raw anomaly flag alone.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(8.9 ML evaluation in the current system) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The project tries to evaluate the ML model, but the evaluation is weak-label based.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This means:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- it uses existing non-ML alert windows as proxy labels) Tj
+0 -14 Td
+(- these proxy labels are not true ground truth) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The computed metrics can include:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- precision) Tj
+0 -14 Td
+(- recall) Tj
+0 -14 Td
+(- F1 score) Tj
+0 -14 Td
+(- support) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This is useful for monitoring model behavior, but it is not enough to claim real-world) Tj
+0 -14 Td
+(security accuracy.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(So the honest interpretation is:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- useful diagnostic signal) Tj
+0 -14 Td
+(- not a benchmark-grade validation) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(9. Training, testing, and validation) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(9.1 Current training state) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The training path exists and works conceptually, but it is still lightweight.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Strengths:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- automated) Tj
+0 -14 Td
+(- local) Tj
+ET
+endstream
+endobj
+26 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 25 0 R >>
+endobj
+27 0 obj
+<< /Length 1999 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+(- reproducible) Tj
+0 -14 Td
+(- integrated into capture and analysis flow) Tj
+0 -14 Td
+(- stores metadata with the model) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Limitations:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- no train/validation/test split) Tj
+0 -14 Td
+(- no versioned training datasets) Tj
+0 -14 Td
+(- no explicit concept drift handling) Tj
+0 -14 Td
+(- no periodic retraining scheduler beyond current triggers) Tj
+0 -14 Td
+(- no robust experiment tracking) Tj
+0 -14 Td
+(- no true labeled evaluation) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(9.2 Current testing state) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(There do not appear to be automated tests in the repository.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(That means several parts should ideally be tested but currently are not verified by a test) Tj
+0 -14 Td
+(suite:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- packet normalization correctness) Tj
+0 -14 Td
+(- DNS/SNI/HTTP/QUIC enrichment logic) Tj
+0 -14 Td
+(- flow construction) Tj
+0 -14 Td
+(- rule threshold behavior) Tj
+0 -14 Td
+(- statistical detector baselines) Tj
+0 -14 Td
+(- ML training skip/train behavior) Tj
+0 -14 Td
+(- model persistence and reload) Tj
+0 -14 Td
+(- database grouping logic) Tj
+0 -14 Td
+(- API responses and filtering) Tj
+0 -14 Td
+(- host inventory aggregation) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(9.3 What should be tested next) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Recommended tests:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- unit tests for rule-based detectors) Tj
+0 -14 Td
+(- unit tests for feature extraction output) Tj
+0 -14 Td
+(- unit tests for alert grouping and deduplication) Tj
+0 -14 Td
+(- API tests for Flask endpoints) Tj
+0 -14 Td
+(- integration tests for packet -> database -> analysis -> alert flow) Tj
+0 -14 Td
+(- ML tests for:) Tj
+0 -14 Td
+(  - insufficient sample handling) Tj
+0 -14 Td
+(  - successful model save/load) Tj
+0 -14 Td
+(  - anomaly result schema) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(9.4 How to think about model quality here) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(In this project, ML should be viewed as:) Tj
+0 -14 Td
+() Tj
+ET
+endstream
+endobj
+28 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 27 0 R >>
+endobj
+29 0 obj
+<< /Length 1771 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+(- a secondary detector) Tj
+0 -14 Td
+(- a behavior outlier signal) Tj
+0 -14 Td
+(- an investigator aid) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(It should not yet be marketed as:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- highly accurate attack classification) Tj
+0 -14 Td
+(- validated threat intelligence) Tj
+0 -14 Td
+(- autonomous decision-maker) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(That is why the risk scoring code treats ML as supportive rather than dominant.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(10. Risk scoring and triage) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The engine builds a risk score from recent alerts.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Broad logic:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- rule-based alerts add the strongest weight) Tj
+0 -14 Td
+(- traffic spikes add moderate weight) Tj
+0 -14 Td
+(- ML anomalies add small supportive weight) Tj
+0 -14 Td
+(- final score is capped depending on which alert families are present) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The result is mapped to:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- Low) Tj
+0 -14 Td
+(- Moderate) Tj
+0 -14 Td
+(- Elevated) Tj
+0 -14 Td
+(- High) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This helps analysts avoid reading every alert as equally important.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(11. Incidents, grouping, and workflow) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The system avoids endless duplicate alerts by grouping incidents in SQLite.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Alerts are grouped when they match on:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- alert type) Tj
+0 -14 Td
+(- source IP) Tj
+0 -14 Td
+(- destination IP) Tj
+0 -14 Td
+(- recent lookback period) Tj
+0 -14 Td
+(- unresolved workflow state) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Instead of inserting a new row every time, the existing incident gets:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- updated severity and reason) Tj
+ET
+endstream
+endobj
+30 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 29 0 R >>
+endobj
+31 0 obj
+<< /Length 1641 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+(- refreshed last seen time) Tj
+0 -14 Td
+(- incremented event count) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This is operationally valuable because it reduces alert fatigue.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The UI also allows workflow management:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- new) Tj
+0 -14 Td
+(- acknowledged) Tj
+0 -14 Td
+(- investigating) Tj
+0 -14 Td
+(- resolved) Tj
+0 -14 Td
+(- false positive) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Plus:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- owner) Tj
+0 -14 Td
+(- notes) Tj
+0 -14 Td
+(- resolution) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(That turns the tool into an incident triage workspace rather than a raw detector console.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(12. Host view and reporting) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The project also gives an asset-centric view of the network.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(For each host, the system can summarize:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- packet count) Tj
+0 -14 Td
+(- byte volume) Tj
+0 -14 Td
+(- peers) Tj
+0 -14 Td
+(- protocol mix) Tj
+0 -14 Td
+(- top domains) Tj
+0 -14 Td
+(- alerts related to that host) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This is useful because investigations often begin with:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- which host is noisy?) Tj
+0 -14 Td
+(- which host is talking to many peers?) Tj
+0 -14 Td
+(- which host triggered alerts?) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The reporting page provides a broader historical summary for operational review and handoff.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(13. Current limitations and risks) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The codebase has several honest limitations:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- no automatic prevention) Tj
+ET
+endstream
+endobj
+32 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 31 0 R >>
+endobj
+33 0 obj
+<< /Length 2415 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+(- no authentication or RBAC on the web UI) Tj
+0 -14 Td
+(- best-effort domain enrichment only) Tj
+0 -14 Td
+(- ML is weakly evaluated) Tj
+0 -14 Td
+(- no full external integrations) Tj
+0 -14 Td
+(- host allowlisting is metadata only) Tj
+0 -14 Td
+(- no automated tests in repo) Tj
+0 -14 Td
+(- ML anomalies are not mapped to specific host pairs) Tj
+0 -14 Td
+(- features are derived from packet history already stored, not streamed into a high-scale) Tj
+0 -14 Td
+(  pipeline) Tj
+0 -14 Td
+(- SQLite is fine for local or demo-scale use but not ideal for large production telemetry) Tj
+0 -14 Td
+(  volumes) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(14. Why the design still makes sense) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Despite the limitations, the design is reasonable for a practical project because it shows a) Tj
+0 -14 Td
+(clear layered detection strategy:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(- packet visibility) Tj
+0 -14 Td
+(- structured storage) Tj
+0 -14 Td
+(- interpretable rules) Tj
+0 -14 Td
+(- baseline-aware statistics) Tj
+0 -14 Td
+(- unsupervised anomaly detection) Tj
+0 -14 Td
+(- risk scoring) Tj
+0 -14 Td
+(- incident grouping) Tj
+0 -14 Td
+(- analyst workflow) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(That combination is much stronger than having only one detector type.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Rules catch obvious patterns.) Tj
+0 -14 Td
+(Statistics catch contextual volume shifts.) Tj
+0 -14 Td
+(ML catches unusual combinations and outliers.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Together, they produce better operational visibility than any one layer alone.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(15. Simple summary) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(If we reduce the whole project to one compact explanation:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(This product watches live network traffic, converts raw packets into structured history,) Tj
+0 -14 Td
+(analyzes them using rules, statistics, and machine learning, groups suspicious findings into) Tj
+0 -14 Td
+(incidents, scores the current level of risk, and presents everything in a dashboard so a) Tj
+0 -14 Td
+(human can investigate faster and more effectively.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(And if we reduce the ML part to one compact explanation:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(The model is an unsupervised Isolation Forest trained on 10-second traffic feature windows) Tj
+0 -14 Td
+(stored in SQLite. It learns what normal traffic usually looks like, then flags recent) Tj
+ET
+endstream
+endobj
+34 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 33 0 R >>
+endobj
+35 0 obj
+<< /Length 157 >>
+stream
+BT
+/F1 10 Tf
+48 744 Td
+(windows that are unusually different. It is used as a supporting anomaly signal, not as the) Tj
+0 -14 Td
+(sole decision-maker.) Tj
+ET
+endstream
+endobj
+36 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 35 0 R >>
+endobj
+37 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+xref
+0 38
+0000000000 65535 f 
+0000000009 00000 n 
+0000000079 00000 n 
+0000000247 00000 n 
+0000002998 00000 n 
+0000003124 00000 n 
+0000005370 00000 n 
+0000005496 00000 n 
+0000007631 00000 n 
+0000007757 00000 n 
+0000009475 00000 n 
+0000009602 00000 n 
+0000011512 00000 n 
+0000011640 00000 n 
+0000013770 00000 n 
+0000013898 00000 n 
+0000015726 00000 n 
+0000015854 00000 n 
+0000018166 00000 n 
+0000018294 00000 n 
+0000020665 00000 n 
+0000020793 00000 n 
+0000022768 00000 n 
+0000022896 00000 n 
+0000024972 00000 n 
+0000025100 00000 n 
+0000026937 00000 n 
+0000027065 00000 n 
+0000029117 00000 n 
+0000029245 00000 n 
+0000031069 00000 n 
+0000031197 00000 n 
+0000032891 00000 n 
+0000033019 00000 n 
+0000035487 00000 n 
+0000035615 00000 n 
+0000035824 00000 n 
+0000035952 00000 n 
+trailer
+<< /Size 38 /Root 37 0 R >>
+startxref
+36002
+%%EOF
