@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Traffic Operations Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Network Operations</p>
+          <h1>Traffic Operations Dashboard</h1>
+          <p class="hero-copy">
+            Live monitoring, incident triage, host inventory, and recent traffic intelligence
+            in one view.
+          </p>
+        </div>
+        <div class="status-panel">
+          <div class="status-line">
+            <span class="dot" id="statusDot"></span>
+            <span id="statusText">Stopped</span>
+          </div>
+          <div class="status-meta">
+            <span id="packetCount">0 packets</span>
+            <span id="statusSince">No active capture</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="toolbar">
+        <div class="toolbar-group">
+          <button class="btn primary" id="startBtn">Start Capture</button>
+          <button class="btn" id="stopBtn">Stop Capture</button>
+          <button class="btn" id="restartBtn">Restart</button>
+          <button class="btn danger" id="clearBtn">Clear History</button>
+        </div>
+        <div class="toolbar-group">
+          <button class="btn" id="analyzeBtn">Run Live Analysis</button>
+          <a class="btn" href="/analysis">Reporting</a>
+        </div>
+      </section>
+
+      <section class="filters">
+        <label>
+          <span>Range</span>
+          <select id="rangeSelect">
+            <option value="1800">30 min</option>
+            <option value="3600" selected>1 hour</option>
+            <option value="21600">6 hours</option>
+            <option value="86400">24 hours</option>
+          </select>
+        </label>
+        <label class="wide">
+          <span>Search</span>
+          <input id="queryInput" type="text" placeholder="IP, domain, protocol, owner" />
+        </label>
+        <label>
+          <span>Protocol</span>
+          <select id="protocolFilter">
+            <option value="all">All</option>
+            <option value="TCP">TCP</option>
+            <option value="UDP">UDP</option>
+            <option value="OTHER">OTHER</option>
+          </select>
+        </label>
+        <label>
+          <span>Severity</span>
+          <select id="severityFilter">
+            <option value="all">All</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </label>
+        <label>
+          <span>Alert Status</span>
+          <select id="alertStatusFilter">
+            <option value="all">All</option>
+            <option value="new">New</option>
+            <option value="acknowledged">Acknowledged</option>
+            <option value="investigating">Investigating</option>
+            <option value="resolved">Resolved</option>
+            <option value="false_positive">False Positive</option>
+          </select>
+        </label>
+        <button class="btn" id="refreshBtn">Refresh</button>
+      </section>
+
+      <section class="kpi-grid four">
+        <article class="kpi-card accent">
+          <div class="kpi-label">Live Risk</div>
+          <div class="kpi-value" id="riskScore">0</div>
+          <div class="kpi-note" id="riskLevel">Low</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-label">Packets In Range</div>
+          <div class="kpi-value" id="summaryPackets">0</div>
+          <div class="kpi-note" id="summaryBytes">0 bytes</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-label">Open Alerts</div>
+          <div class="kpi-value" id="summaryAlerts">0</div>
+          <div class="kpi-note" id="statusBreakdown">New 0 | Investigating 0</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-label">Hosts / Domains</div>
+          <div class="kpi-value" id="summaryHosts">0</div>
+          <div class="kpi-note" id="summaryDomains">0 domains</div>
+        </article>
+      </section>
+
+      <nav class="tab-bar" aria-label="Dashboard sections">
+        <button class="tab-btn active" data-tab="overview">Overview</button>
+        <button class="tab-btn" data-tab="incidents">Incidents</button>
+        <button class="tab-btn" data-tab="hosts">Hosts</button>
+        <button class="tab-btn" data-tab="packets">Packets</button>
+      </nav>
+
+      <section class="tab-panel active" data-tab-panel="overview">
+        <section class="panel-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Traffic Trend</h2>
+                <p>Packets and bytes over the selected range</p>
+              </div>
+            </div>
+            <div class="chart" id="trafficChart"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Alert Trend</h2>
+                <p>Grouped incidents by time bucket</p>
+              </div>
+            </div>
+            <div class="chart" id="alertChart"></div>
+          </article>
+        </section>
+
+        <section class="panel-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Protocol Mix</h2>
+                <p>Recent protocol distribution</p>
+              </div>
+            </div>
+            <div class="mini-list" id="protocolMix"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Top Domains</h2>
+                <p>Most active destinations in the current range</p>
+              </div>
+            </div>
+            <div class="mini-list" id="topDomains"></div>
+          </article>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="incidents">
+        <section class="main-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Incident Queue</h2>
+                <p>Grouped alerts with triage status and ownership</p>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Pair</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th>Owner</th>
+                    <th>Events</th>
+                    <th>Last Seen</th>
+                  </tr>
+                </thead>
+                <tbody id="alertRows"></tbody>
+              </table>
+            </div>
+          </article>
+          <aside class="panel detail-panel">
+            <div class="panel-head">
+              <div>
+                <h2>Alert Detail</h2>
+                <p>Workflow state, notes, and recommended context</p>
+              </div>
+            </div>
+            <div id="alertDetail" class="detail-empty">Select an alert to triage it.</div>
+          </aside>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="hosts">
+        <section class="main-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Host Inventory</h2>
+                <p>Active hosts, ownership, roles, and peer context</p>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Host</th>
+                    <th>Role</th>
+                    <th>Packets</th>
+                    <th>Peers</th>
+                    <th>Top Protocol</th>
+                    <th>Alerts</th>
+                    <th>Last Seen</th>
+                  </tr>
+                </thead>
+                <tbody id="hostRows"></tbody>
+              </table>
+            </div>
+          </article>
+          <aside class="panel detail-panel">
+            <div class="panel-head">
+              <div>
+                <h2>Host Detail</h2>
+                <p>Metadata, behavior summary, and recent packets</p>
+              </div>
+            </div>
+            <div id="hostDetail" class="detail-empty">Select a host to inspect and tag it.</div>
+          </aside>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="packets">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Live Packet Feed</h2>
+              <p>Filtered packet stream for quick drill-down</p>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Domain</th>
+                  <th>Source</th>
+                  <th>Destination</th>
+                  <th>Protocol</th>
+                  <th>Src Port</th>
+                  <th>Dst Port</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody id="packetRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
